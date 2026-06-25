@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="description" content="Scheda di controllo qualità per la distribuzione pasti ai degenti, con calcolo automatico del punteggio di conformità.">
+<meta name="theme-color" content="#003C80">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Scheda di Controllo Qualità Distribuzione Pasti</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html { overflow-x: hidden; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #f0f2f5;
+    color: #1a1a2e;
+    min-height: 100vh;
+    padding: 0;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Header */
+  .header {
+    background: #003C80;
+    color: white;
+    padding: 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .header-inner {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 28px 32px 20px;
+    position: relative;
+    z-index: 1;
+  }
+  .header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    line-height: 1.2;
+  }
+  .header p.subtitle {
+    font-size: 13px;
+    opacity: 0.75;
+    margin-top: 4px;
+  }
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.2px;
+    opacity: 0.6;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  /* Score band */
+  .score-band {
+    background: #002966;
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .score-band-inner { max-width: 960px; margin: 0 auto; width: 100%; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+  .score-block { text-align: center; min-width: 80px; }
+  .score-block .val { font-size: 28px; font-weight: 700; color: white; line-height: 1; }
+  .score-block .lbl { font-size: 11px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 2px; }
+  .score-divider { width: 1px; height: 40px; background: rgba(255,255,255,0.2); }
+  .score-bar-wrap { flex: 1; min-width: 200px; }
+  .score-bar-track { background: rgba(255,255,255,0.15); border-radius: 4px; height: 10px; position: relative; }
+  .score-bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease, background 0.3s; }
+  .score-bar-threshold { position: absolute; top: -4px; height: 18px; width: 2px; background: rgba(255,255,255,0.6); }
+  .score-bar-label { font-size: 11px; color: rgba(255,255,255,0.6); margin-top: 4px; }
+  .esito-pill {
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    transition: all 0.3s;
+  }
+  .esito-pill.conforme { background: #1a7a4a; color: white; }
+  .esito-pill.non-conforme { background: #c0392b; color: white; }
+  .esito-pill.nd { background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.7); }
+
+  /* Main layout */
+  .main { max-width: 960px; margin: 0 auto; padding: 24px 16px 60px; }
+
+  /* Cards */
+  .card {
+    background: white;
+    border-radius: 10px;
+    border: 1px solid #dde3ee;
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .card-header {
+    background: #f7f9fc;
+    border-bottom: 1px solid #dde3ee;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-header h2 {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #003C80;
+  }
+  .card-body { padding: 20px; }
+
+  .field-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+  }
+  .field-group label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: #6b7a99;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 5px;
+  }
+  .field-group input {
+    width: 100%;
+    border: 1px solid #dde3ee;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 16px;
+    color: #1a1a2e;
+    background: white;
+    outline: none;
+    transition: border-color 0.2s;
+    font-family: inherit;
+  }
+  .field-group input:focus {
+    border-color: #003C80;
+    box-shadow: 0 0 0 2px rgba(0,60,128,0.1);
+  }
+
+  /* Elementi */
+  .elemento-block {
+    background: white;
+    border-radius: 10px;
+    border: 1px solid #dde3ee;
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+  .elemento-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 18px;
+    cursor: pointer;
+    background: white;
+    user-select: none;
+    transition: background 0.15s;
+    min-height: 44px;
+  }
+  .elemento-header:hover { background: #f7f9fc; }
+  .elemento-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a1a2e;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .elem-color { width: 4px; height: 22px; border-radius: 2px; flex-shrink: 0; }
+  .elemento-score {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: #6b7a99;
+  }
+  .elem-ratio {
+    font-weight: 700;
+    font-size: 15px;
+    min-width: 36px;
+    text-align: right;
+  }
+  .mini-bar { width: 60px; height: 6px; background: #eef0f5; border-radius: 3px; overflow: hidden; }
+  .mini-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s, background 0.3s; }
+  .chevron {
+    font-size: 16px;
+    color: #aab2c8;
+    transition: transform 0.25s;
+    display: inline-block;
+  }
+  .chevron.open { transform: rotate(180deg); }
+
+  .indicatori-wrap {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.3s ease;
+  }
+  .indicatori-wrap.open { max-height: 5000px; }
+
+  .indicatore-row {
+    padding: 14px 18px;
+    border-top: 1px solid #f0f2f5;
+  }
+  .indicatore-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .indicatore-testo {
+    font-size: 14px;
+    color: #1a1a2e;
+    font-weight: 500;
+    line-height: 1.35;
+  }
+  .indicatore-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .tolleranza { font-size: 12px; color: #6b7a99; }
+  .strumento { font-size: 11px; background: #f0f2f5; padding: 3px 8px; border-radius: 4px; color: #3a4a6b; font-weight: 600; }
+  .peso-badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 12px;
+  }
+  .peso-1 { background: #e8f4e8; color: #2a7a2a; }
+  .peso-2 { background: #fff3cd; color: #8a6000; }
+  .peso-3 { background: #fde8e8; color: #c0392b; }
+
+  .indicatore-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  /* Controllo binario Obb (SI/NO) */
+  .binario-toggle {
+    display: inline-flex;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1.5px solid #dde3ee;
+  }
+  .binario-btn {
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    background: white;
+    color: #6b7a99;
+    transition: all 0.15s;
+    font-family: inherit;
+    min-height: 38px;
+  }
+  .binario-btn.pos.active { background: #1a7a4a; color: white; }
+  .binario-btn.neg.active { background: #c0392b; color: white; }
+  .binario-btn + .binario-btn { border-left: 1px solid #dde3ee; }
+
+  /* Controllo numerico con confronto automatico */
+  .numerico-field {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .numerico-field label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #6b7a99;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+  .num-input {
+    width: 76px;
+    height: 40px;
+    border: 1.5px solid #dde3ee;
+    border-radius: 8px;
+    padding: 5px 8px;
+    font-size: 16px;
+    text-align: center;
+    font-family: inherit;
+    color: #1a1a2e;
+    background: white;
+  }
+  .num-input:focus { outline: none; border-color: #003C80; box-shadow: 0 0 0 3px rgba(0,60,128,0.12); }
+  .unita-label { font-size: 13px; color: #6b7a99; }
+
+  /* Controllo esito laboratorio (conforme/non conforme manuale) */
+  .lab-toggle {
+    display: inline-flex;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1.5px solid #dde3ee;
+  }
+  .lab-btn {
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    background: white;
+    color: #6b7a99;
+    transition: all 0.15s;
+    font-family: inherit;
+    min-height: 38px;
+  }
+  .lab-btn.pos.active { background: #1a7a4a; color: white; }
+  .lab-btn.neg.active { background: #c0392b; color: white; }
+  .lab-btn + .lab-btn { border-left: 1px solid #dde3ee; }
+
+  /* Riscontro auto-calcolato */
+  .riscontro-auto {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    height: 36px;
+    padding: 0 14px;
+    border-radius: 18px;
+    font-weight: 700;
+    font-size: 16px;
+    background: #f0f2f5;
+    color: #aab2c8;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .riscontro-auto.pos { background: #e8f4e8; color: #1a7a4a; }
+  .riscontro-auto.neg { background: #fde8e8; color: #c0392b; }
+
+  /* Note */
+  .note-area {
+    width: 100%;
+    border: 1px solid #dde3ee;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 16px;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 70px;
+    color: #1a1a2e;
+    background: white;
+  }
+  .note-area:focus { outline: none; border-color: #003C80; }
+
+  /* Actions */
+  .actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 24px;
+  }
+  .btn-primary {
+    padding: 11px 24px;
+    background: #003C80;
+    color: white;
+    border: none;
+    border-radius: 7px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .btn-primary:hover { background: #002966; }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-secondary {
+    padding: 11px 24px;
+    background: white;
+    color: #003C80;
+    border: 1.5px solid #003C80;
+    border-radius: 7px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.2s;
+  }
+  .btn-secondary:hover { background: #e8f0fb; }
+  .btn-danger {
+    padding: 11px 20px;
+    background: white;
+    color: #c0392b;
+    border: 1.5px solid #e8b4b0;
+    border-radius: 7px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.2s;
+  }
+  .btn-danger:hover { background: #fde8e8; }
+
+  /* Print */
+  @media print {
+    body { background: white; }
+    .header { background: #003C80 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .score-band { background: #002966 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .actions { display: none; }
+    .elemento-header { cursor: default; }
+    .indicatori-wrap { max-height: none !important; overflow: visible !important; }
+    .chevron { display: none; }
+    .elemento-block { break-inside: avoid; page-break-inside: avoid; }
+    .indicatore-row { break-inside: avoid; page-break-inside: avoid; }
+    .card { break-inside: avoid; page-break-inside: avoid; }
+    .elemento-header { break-after: avoid; page-break-after: avoid; }
+  }
+
+  @media(max-width: 600px) {
+    .field-grid { grid-template-columns: 1fr; }
+    .header-inner { padding: 18px 16px 14px; }
+    .header h1 { font-size: 19px; }
+    .score-band { padding: 12px 16px; }
+    .score-band-inner { gap: 14px; }
+    .score-block { min-width: 60px; }
+    .score-block .val { font-size: 22px; }
+    .score-bar-wrap { order: 10; flex: 1 0 100%; }
+    .esito-pill { font-size: 12px; padding: 7px 14px; }
+    .main { padding: 14px 10px 40px; }
+    .card-body { padding: 16px; }
+    .elemento-title { font-size: 13.5px; }
+    .mini-bar { width: 44px; }
+    .indicatore-row { padding: 14px 16px; }
+    .indicatore-bottom { flex-direction: column; align-items: stretch; gap: 10px; }
+    .indicatore-bottom > * { width: 100%; justify-content: center; display: flex; }
+    .binario-toggle, .lab-toggle { width: 100%; }
+    .binario-btn, .lab-btn { flex: 1; }
+    .actions { flex-direction: column; }
+    .actions button { width: 100%; }
+    .btn-primary, .btn-secondary, .btn-danger { padding: 13px 20px; font-size: 15px; }
+  }
+
+  @media (pointer: coarse) {
+    .num-input { height: 42px; }
+    .riscontro-auto { height: 38px; }
+    .binario-btn, .lab-btn { min-height: 40px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="eyebrow">Vivenda S.p.A.</div>
+    <h1>Scheda di Controllo Qualità<br>Distribuzione Pasti</h1>
+    <p class="subtitle">Categoria: Distribuzione pasti</p>
+  </div>
+</div>
+
+<div class="score-band">
+  <div class="score-band-inner">
+    <div class="score-block">
+      <div class="val" id="val-A">41</div>
+      <div class="lbl">Totale A</div>
+    </div>
+    <div class="score-divider"></div>
+    <div class="score-block">
+      <div class="val" id="val-B">—</div>
+      <div class="lbl">Totale B</div>
+    </div>
+    <div class="score-divider"></div>
+    <div class="score-block">
+      <div class="val" id="val-ratio">—</div>
+      <div class="lbl">B / A</div>
+    </div>
+    <div class="score-bar-wrap">
+      <div class="score-bar-track">
+        <div class="score-bar-fill" id="score-bar" style="width:0%; background:#6b7a99;"></div>
+        <div class="score-bar-threshold" style="left:90%;"></div>
+      </div>
+      <div class="score-bar-label">Soglia di accettabilità: <strong style="color:rgba(255,255,255,0.8)">0.90</strong></div>
+    </div>
+    <div class="esito-pill nd" id="esito-pill">In attesa</div>
+  </div>
+</div>
+
+<div class="main">
+
+  <div class="card">
+    <div class="card-header"><h2>Dati identificativi</h2></div>
+    <div class="card-body">
+      <div class="field-grid">
+        <div class="field-group">
+          <label>Data</label>
+          <input type="date" id="data-controllo">
+        </div>
+        <div class="field-group">
+          <label>Ora</label>
+          <input type="time" id="ora-controllo">
+        </div>
+        <div class="field-group">
+          <label>Controllore</label>
+          <input type="text" placeholder="Nome e cognome" id="controllore">
+        </div>
+        <div class="field-group">
+          <label>Referente Ditta</label>
+          <input type="text" placeholder="Nome e cognome" id="referente-ditta">
+        </div>
+        <div class="field-group">
+          <label>Struttura</label>
+          <input type="text" placeholder="es. Ospedale" id="struttura">
+        </div>
+        <div class="field-group">
+          <label>Reparto</label>
+          <input type="text" placeholder="es. Medicina Interna" id="reparto">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="elementi-container"></div>
+
+  <div class="card">
+    <div class="card-header"><h2>Note e osservazioni</h2></div>
+    <div class="card-body">
+      <textarea class="note-area" placeholder="Annotazioni aggiuntive, non conformità rilevate, azioni correttive suggerite..." id="note-text"></textarea>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2>Nota metodologica</h2></div>
+    <div class="card-body">
+      <p style="font-size:13px; color:#3a4a6b; line-height:1.6;">La zona &laquo;Distribuzione pasti&raquo; &egrave; alimentata anche dai campionamenti su vassoi, tamponi palmari e pasti finiti previsti dal Piano di Campionamento Analitico per i presidi ospedalieri. Gli esiti microbiologici riportati in questa scheda devono corrispondere all'ultimo referto di laboratorio pertinente alla zona, e non a un'osservazione diretta sul momento.</p>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn-primary" onclick="window.print()">Stampa / Salva PDF</button>
+    <button class="btn-secondary" onclick="setAllPositive()">Imposta tutto conforme</button>
+    <button class="btn-danger" onclick="resetAll()">Azzera</button>
+  </div>
+
+</div>
+
+<script>
+const ELEMENTI = [
+  {
+    id: 'consegna-carrello', label: 'Modalit\u00e0 di consegna del carrello', color: '#003C80',
+    indicatori: [
+      { id: 'mc1', testo: 'Presenza di GMP nel personale addetto al trasporto', tolleranza: 'Obbligatorio', tipo: 'binario', strumento: 'Visivo', peso: 1 },
+      { id: 'mc2', testo: "Rispetto degli orari di consegna dei vassoi", tolleranza: 'Max 10 min oltre l\u2019orario concordato', tipo: 'numerico', cmp: 'maxOk', maxOk: 10, unita: 'min di ritardo', strumento: 'Visivo', peso: 2 },
+      { id: 'mc3', testo: "Corrispondenza tra pasto consegnato e prenotazione (su vassoio campione) \u2014 1\u00b0 e 2\u00b0 piatto", tolleranza: 'Obbligatorio', tipo: 'binario', strumento: 'Visivo', peso: 3 },
+      { id: 'mc4', testo: 'Corrispondenza tra pasto consegnato e prenotazione \u2014 altri elementi del vassoio', tolleranza: 'Obbligatorio', tipo: 'binario', strumento: 'Visivo', peso: 2 },
+    ]
+  },
+  {
+    id: 'posateria', label: 'Posateria e stoviglieria (vassoio campione)', color: '#1a7a4a',
+    indicatori: [
+      { id: 'ps1', testo: 'Assenza di rotture', tolleranza: 'Obbligatorio', tipo: 'binario', strumento: 'Visivo', peso: 2 },
+      { id: 'ps2', testo: 'Assenza di residui di lavaggio', tolleranza: 'Obbligatorio', tipo: 'binario', strumento: 'Visivo', peso: 2 },
+      { id: 'ps3', testo: 'Assortimento posateria e stoviglieria', tolleranza: 'Obbligatorio', tipo: 'binario', strumento: 'Visivo', peso: 1 },
+      { id: 'ps4', testo: 'Pulizia del vassoio consegnato al paziente (esclusa fuoriuscita cibo dovuta al trasporto)', tolleranza: 'Obbligatorio', tipo: 'binario', strumento: 'Visivo', peso: 2 },
+    ]
+  },
+  {
+    id: 'prodotti-vassoio', label: 'Prodotti vassoio (vassoio campione)', color: '#BA7517',
+    indicatori: [
+      { id: 'pv1', testo: 'Assenza di corpi estranei', tolleranza: 'Obbligatorio', tipo: 'binario', strumento: 'Visivo', peso: 3 },
+      { id: 'pv2', testo: 'Temperatura prodotti caldi (1\u00b0 e 2\u00b0)', tolleranza: 'Obbligo \u2265 60\u00b0', tipo: 'numerico', cmp: 'minOk', minOk: 60, unita: '\u00b0C', strumento: 'Visivo/termometro', peso: 3 },
+      { id: 'pv3', testo: 'Temperatura prodotti freddi', tolleranza: 'Obbligo \u2264 10\u00b0', tipo: 'numerico', cmp: 'maxOk', maxOk: 10, unita: '\u00b0C', strumento: 'Visivo/termometro', peso: 3 },
+      { id: 'pv4', testo: 'Correttezza della porzionatura (1\u00b0 e 2\u00b0)', tolleranza: 'Obbligo \u2265 grammatura prevista in tabella', tipo: 'binario', strumento: 'Visivo/bilancia', peso: 3 },
+      { id: 'pv5', testo: 'Scadenza prodotti confezionati (presenza data e non scaduti)', tolleranza: 'Obbligo per yogurt, budino, mozzarella, ricotta, acqua, purea di frutta, formaggi', tipo: 'binario', strumento: 'Visivo', peso: 3 },
+    ]
+  },
+  {
+    id: 'corrispondenza-vassoi', label: 'Corrispondenza numero vassoi consegnati / bolla', color: '#533C89',
+    indicatori: [
+      { id: 'cv1', testo: "Correttezza della quantit\u00e0 inserita nell'applicativo", tolleranza: 'Obbligatorio', tipo: 'binario', strumento: 'Da applicativo', peso: 3 },
+    ]
+  },
+  {
+    id: 'controllo-microbiologico', label: 'Controllo microbiologico e igiene superfici', color: '#c0392b',
+    indicatori: [
+      { id: 'cm1', testo: 'Tampone superficiale vassoio/carrello \u2014 esito ultimo referto di laboratorio pertinente alla zona', tolleranza: 'Conforme \u2014 assenza Enterobatteriaceae e Listeria', tipo: 'laboratorio', strumento: 'Laboratorio accreditato', peso: 3 },
+      { id: 'cm2', testo: 'Tampone palmare operatore di distribuzione \u2014 esito ultimo referto di laboratorio pertinente alla zona', tolleranza: 'Conforme \u2014 assenza E.coli', tipo: 'laboratorio', strumento: 'Laboratorio accreditato', peso: 2 },
+      { id: 'cm3', testo: 'Analisi microbiologica pasto campione (I piatto/II piatto/contorno) \u2014 esito ultimo referto di laboratorio pertinente alla zona', tolleranza: 'Conforme ai parametri CBT, E.coli, Stafilococco, B. Cereus, Listeria, Enterobatteriaceae, Salmonella', tipo: 'laboratorio', strumento: 'Laboratorio accreditato', peso: 3 },
+    ]
+  },
+];
+
+const state = {};
+ELEMENTI.forEach(e => e.indicatori.forEach(i => { state[i.id] = null; }));
+
+function buildUI() {
+  const container = document.getElementById('elementi-container');
+  ELEMENTI.forEach((el, idx) => {
+    const div = document.createElement('div');
+    div.className = 'elemento-block';
+    div.id = 'block-' + el.id;
+
+    div.innerHTML = `
+      <div class="elemento-header" onclick="toggleBlock('${el.id}')">
+        <div class="elemento-title">
+          <div class="elem-color" style="background:${el.color}"></div>
+          ${el.label}
+        </div>
+        <div class="elemento-score">
+          <div class="mini-bar"><div class="mini-bar-fill" id="mini-${el.id}" style="width:0%; background:${el.color};"></div></div>
+          <span class="elem-ratio" id="ratio-${el.id}">\u2014</span>
+          <span class="chevron" id="chev-${el.id}">\u25be</span>
+        </div>
+      </div>
+      <div class="indicatori-wrap ${idx === 0 ? 'open' : ''}" id="wrap-${el.id}">
+        ${el.indicatori.map(ind => renderIndicatore(ind)).join('')}
+      </div>
+    `;
+    container.appendChild(div);
+
+    if (idx === 0) {
+      document.getElementById('chev-' + el.id).classList.add('open');
+    }
+  });
+}
+
+function renderIndicatore(ind) {
+  let controlHtml = '';
+
+  if (ind.tipo === 'binario') {
+    controlHtml = `
+      <div class="binario-toggle">
+        <button class="binario-btn pos" id="bin-pos-${ind.id}" onclick="setBinario('${ind.id}', 1)">Conforme</button>
+        <button class="binario-btn neg" id="bin-neg-${ind.id}" onclick="setBinario('${ind.id}', 0)">Non conforme</button>
+      </div>
+    `;
+  } else if (ind.tipo === 'numerico') {
+    controlHtml = `
+      <div class="numerico-field">
+        <label for="num-${ind.id}">Valore</label>
+        <input class="num-input" type="number" inputmode="decimal" step="0.1" placeholder="0" id="num-${ind.id}" oninput="onNumInput('${ind.id}')">
+        <span class="unita-label">${ind.unita}</span>
+      </div>
+      <span class="riscontro-auto" id="riscontro-${ind.id}">\u2014</span>
+    `;
+  } else if (ind.tipo === 'laboratorio') {
+    controlHtml = `
+      <div class="lab-toggle">
+        <button class="lab-btn pos" id="lab-pos-${ind.id}" onclick="setLab('${ind.id}', 1)">Conforme</button>
+        <button class="lab-btn neg" id="lab-neg-${ind.id}" onclick="setLab('${ind.id}', 0)">Non conforme</button>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="indicatore-row">
+      <div class="indicatore-top">
+        <span class="indicatore-testo">${ind.testo}</span>
+        <span class="peso-badge peso-${ind.peso}">${ind.peso}</span>
+      </div>
+      <div class="indicatore-meta">
+        <span class="tolleranza">${ind.tolleranza}</span>
+        <span class="strumento">${ind.strumento}</span>
+      </div>
+      <div class="indicatore-bottom">
+        ${controlHtml}
+      </div>
+    </div>
+  `;
+}
+
+function toggleBlock(id) {
+  const wrap = document.getElementById('wrap-' + id);
+  const chev = document.getElementById('chev-' + id);
+  wrap.classList.toggle('open');
+  chev.classList.toggle('open');
+}
+
+function setBinario(id, val) {
+  state[id] = val;
+  document.getElementById('bin-pos-' + id).classList.toggle('active', val === 1);
+  document.getElementById('bin-neg-' + id).classList.toggle('active', val === 0);
+  updateScores();
+}
+
+function setLab(id, val) {
+  state[id] = val;
+  document.getElementById('lab-pos-' + id).classList.toggle('active', val === 1);
+  document.getElementById('lab-neg-' + id).classList.toggle('active', val === 0);
+  updateScores();
+}
+
+function findIndicatore(id) {
+  for (const el of ELEMENTI) {
+    const found = el.indicatori.find(i => i.id === id);
+    if (found) return found;
+  }
+  return null;
+}
+
+function onNumInput(id) {
+  const ind = findIndicatore(id);
+  const input = document.getElementById('num-' + id);
+  const raw = input.value;
+  const badge = document.getElementById('riscontro-' + id);
+
+  if (raw === '') {
+    state[id] = null;
+    badge.className = 'riscontro-auto';
+    badge.textContent = '\u2014';
+    updateScores();
+    return;
+  }
+
+  const v = parseFloat(raw);
+  let positivo;
+  if (ind.cmp === 'maxOk') {
+    positivo = v <= ind.maxOk;
+  } else if (ind.cmp === 'minOk') {
+    positivo = v >= ind.minOk;
+  }
+
+  state[id] = positivo ? 1 : 0;
+  badge.className = 'riscontro-auto ' + (positivo ? 'pos' : 'neg');
+  badge.textContent = positivo ? '\u2713' : '\u2717';
+  updateScores();
+}
+
+function updateScores() {
+  let totalA = 0, totalB = 0;
+  let anySet = false;
+
+  ELEMENTI.forEach(el => {
+    let elA = 0, elB = 0, elSet = 0;
+    el.indicatori.forEach(ind => {
+      elA += ind.peso;
+      if (state[ind.id] !== null) {
+        elB += ind.peso * state[ind.id];
+        elSet++;
+        anySet = true;
+      }
+    });
+    totalA += elA;
+    if (elSet > 0) totalB += elB;
+
+    const ratio = elSet > 0 ? elB / elA : null;
+    const ratioEl = document.getElementById('ratio-' + el.id);
+    const miniBar = document.getElementById('mini-' + el.id);
+    if (ratio !== null) {
+      ratioEl.textContent = ratio.toFixed(2);
+      ratioEl.style.color = ratio >= 0.9 ? '#1a7a4a' : '#c0392b';
+      miniBar.style.width = (ratio * 100).toFixed(0) + '%';
+      miniBar.style.background = ratio >= 0.9 ? '#1a7a4a' : '#c0392b';
+    } else {
+      ratioEl.textContent = '\u2014';
+      ratioEl.style.color = '#aab2c8';
+      miniBar.style.width = '0%';
+    }
+  });
+
+  document.getElementById('val-A').textContent = totalA;
+  if (!anySet) {
+    document.getElementById('val-B').textContent = '\u2014';
+    document.getElementById('val-ratio').textContent = '\u2014';
+    document.getElementById('score-bar').style.width = '0%';
+    document.getElementById('score-bar').style.background = '#6b7a99';
+    const pill = document.getElementById('esito-pill');
+    pill.className = 'esito-pill nd';
+    pill.textContent = 'In attesa';
+  } else {
+    const ratio = totalB / totalA;
+    document.getElementById('val-B').textContent = totalB;
+    document.getElementById('val-ratio').textContent = ratio.toFixed(2);
+    const barW = Math.min(100, (ratio * 100)).toFixed(0);
+    const barColor = ratio >= 0.9 ? '#1a7a4a' : '#c0392b';
+    document.getElementById('score-bar').style.width = barW + '%';
+    document.getElementById('score-bar').style.background = barColor;
+    const pill = document.getElementById('esito-pill');
+    if (ratio >= 0.9) {
+      pill.className = 'esito-pill conforme';
+      pill.textContent = '\u2713 CONFORME';
+    } else {
+      pill.className = 'esito-pill non-conforme';
+      pill.textContent = '\u2717 NON CONFORME';
+    }
+  }
+}
+
+function setAllPositive() {
+  ELEMENTI.forEach(el => {
+    el.indicatori.forEach(ind => {
+      if (ind.tipo === 'binario') {
+        setBinario(ind.id, 1);
+      } else if (ind.tipo === 'laboratorio') {
+        setLab(ind.id, 1);
+      } else if (ind.tipo === 'numerico') {
+        const input = document.getElementById('num-' + ind.id);
+        if (input) {
+          input.value = ind.cmp === 'maxOk' ? ind.maxOk : ind.minOk;
+          onNumInput(ind.id);
+        }
+      }
+    });
+  });
+}
+
+function resetAll() {
+  if (!confirm('Vuoi azzerare tutti i dati inseriti?')) return;
+  ELEMENTI.forEach(el => {
+    el.indicatori.forEach(ind => {
+      state[ind.id] = null;
+      if (ind.tipo === 'binario') {
+        const pos = document.getElementById('bin-pos-' + ind.id);
+        const neg = document.getElementById('bin-neg-' + ind.id);
+        if (pos) { pos.classList.remove('active'); neg.classList.remove('active'); }
+      } else if (ind.tipo === 'laboratorio') {
+        const pos = document.getElementById('lab-pos-' + ind.id);
+        const neg = document.getElementById('lab-neg-' + ind.id);
+        if (pos) { pos.classList.remove('active'); neg.classList.remove('active'); }
+      } else if (ind.tipo === 'numerico') {
+        const input = document.getElementById('num-' + ind.id);
+        const badge = document.getElementById('riscontro-' + ind.id);
+        if (input) input.value = '';
+        if (badge) { badge.className = 'riscontro-auto'; badge.textContent = '\u2014'; }
+      }
+    });
+  });
+  ['data-controllo','ora-controllo','controllore','referente-ditta','struttura','reparto']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  const note = document.getElementById('note-text');
+  if (note) note.value = '';
+  updateScores();
+}
+
+buildUI();
+</script>
+</body>
+</html>
